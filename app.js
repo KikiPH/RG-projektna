@@ -51,6 +51,8 @@ function initGL (canvas){
             console.log('WebGL not supported, falling back on experimental-webgl');
             gl = canvas.getContext('experimental-webgl');
         }
+        gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
 
         
     } catch(e) {}
@@ -140,6 +142,26 @@ function initShaders() {
     shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
 }
 
+function initTextures() {
+    guardTexture = gl.createTexture();
+    guardTexture.image = new Image();
+    guardTexture.image.onload = function() {
+        handleTextureLoaded(guardTexture);
+    }
+    guardTexture.image.src = "./assets/world.png";
+}
+
+function handleTextureLoaded(texture){
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    
+    texturesLoaded += 1;
+}
 
 function mvPushMatrix() {
     var copy = mat4.create();
@@ -168,24 +190,26 @@ function handleLoadedGuard(guardData){
     guardVertexTextureCoordBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(guardTexCoords), gl.STATIC_DRAW);
-    
+    guardVertexTextureCoordBuffer.itemSize = 2;
+    guardVertexTextureCoordBuffer.numItems = guardTexCoords.length / 2;
   
     // Pass the vertex positions into WebGL
     guardVertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(guardVertices), gl.STATIC_DRAW);
-    
+    guardVertexPositionBuffer.itemSize = 3;
+    guardVertexPositionBuffer.numItems = guardVertices.length / 3;
   
     // Pass the indices into WebGL
     guardVertexIndexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(guardIndices), gl.STATIC_DRAW);
-    
+    guardVertexIndexBuffer.numItems = guardIndices.length;
 }
 
 function loadGuard() {
     var request = new XMLHttpRequest();
-    request.open("GET", "./assets/guard.json");
+    request.open("GET", "./assets/world.json");
     request.onreadystatechange = function () {
       if (request.readyState == 4) {
         handleLoadedGuard(JSON.parse(request.responseText));
@@ -199,26 +223,7 @@ function initGuard(){
 }
   
 
-function initTextures() {
-    guardTexture = gl.createTexture();
-    guardTexture.image = new Image();
-    guardTexture.image.onload = function() {
-        handleTextureLoaded(guardTexture);
-    }
-    guardTexture.image.src = "./assets/guard.png";
-}
 
-function handleTextureLoaded(texture){
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    
-    texturesLoaded += 1;
-}
 
 function initWorldObjects() {
     
@@ -232,58 +237,44 @@ function setMatrixUniform(){
 
 function drawScene() {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-    // Clear the canvas before we start drawing on it.
+    
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    //console.log(guardVertexIndexBuffer);
-    
-    
-    //console.log(guardVertexPositionBuffer);
-
 
     if (guardVertexPositionBuffer == null || guardVertexTextureCoordBuffer == null || guardVertexIndexBuffer == null) {
       return;
     }
     
     glMatrix.mat4.perspective(pMatrix, degToRad(45), gl.viewportWidth / gl.viewportHeight, 0.1, 1000.0);
-
-    //glMatrix.mat4.prespective
-
-    // Set the drawing position to the "identity" point, which is
-    // the center of the scene.
     glMatrix.mat4.identity(mvMatrix);
 
-    // Now move the drawing position a bit to where we want to start
-    // drawing the cube.
-    glMatrix.mat4.translate(mvMatrix, mvMatrix, [0.0, 0.0, -7.0]);
-
-   
-    
-    // Draw the guard by binding the array buffer to the guard's vertices
-    // array, setting attributes, and pushing it to GL.
-    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, gl.FALSE, 3 * Float32Array.BYTES_PER_ELEMENT, 0);
-    gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-    // Set the texture coordinates attribute for the vertices.
-    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
-    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, 2, gl.FLOAT, gl.FALSE, 3 * Float32Array.BYTES_PER_ELEMENT, 0);
-    gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
-   
+    glMatrix.mat4.translate(mvMatrix, mvMatrix, [-1.0, -0.3, -13.0]);
 
 
-    // Specify the texture to map onto the faces.
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, guardTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
 
-    // Draw the guard.
+    // Set the texture coordinates attribute for the vertices.
+    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
+    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, guardVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    // Draw the world by binding the array buffer to the world's vertices
+    // array, setting attributes, and pushing it to GL.
+    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, guardVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+    
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
+
+
+
+    // Draw the cube.
     setMatrixUniforms();
     gl.drawElements(gl.TRIANGLES, guardVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-  }
+    
 
-
-
-
+}
 
 var start = function() {
     console.log("started");
@@ -292,7 +283,7 @@ var start = function() {
     gl = initGL(canvas);
 
     if (gl){
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);                      // Set clear color to black, fully opaque
+        gl.clearColor(0.2, 0.3, 0.3, 1.0);                      // Set clear color to black, fully opaque
         gl.clearDepth(1.0);                                     // Clear everything
         gl.enable(gl.DEPTH_TEST);                               // Enable depth testing
         gl.depthFunc(gl.LEQUAL);  
