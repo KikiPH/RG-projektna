@@ -78,13 +78,16 @@ function degToRad(degrees) {
 var lastTime = 0;
 var effectiveFPMS = 60 / 1000;
 
-function Guard(x, y){
-    //nvm to priredi po svoje ce je treba
-    this.shot = false;
-    this.xlocation = x;
-    this.ylocation = y;
-    this.rotation = 0;
-    //tu nardis funkcijo za padanje (neka rotacija al neki),...
+class Guard {
+    constructor(vertexBufferGuard, textureBufferGuard, indexBufferGuard, x, y){
+        this.vertexBufferGuard = vertexBufferGuard;
+        this.textureBufferGuard = textureBufferGuard;
+        this.indexBufferGuard = indexBufferGuard;
+        this.xlocation = x;
+        this.ylocation = y;
+        this.shot = false;
+    }
+
 }
 
 
@@ -275,6 +278,16 @@ function handleLoadedGuard(guardData){
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(guardIndices), gl.STATIC_DRAW);
     guardVertexIndexBuffer.numItems = guardIndices.length;
+
+
+
+    var numGuards = 2;
+    
+    for (var i = 0; i < numGuards; i++) {
+      // Create new star and push it to the stars array
+      Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, i+2 , 1));
+    }
+    console.log(Guards);
 }
 
 function handleLoadedWorld(worldData){
@@ -327,15 +340,6 @@ function loadWorld() {
     request.send();
 }
 
-function initGuards(){
-    var numGuards = 2;
-    
-    for (var i = 0; i < numGuards; i++) {
-      // Create new star and push it to the stars array
-      Guards.push(new Guard(i+2 , 1));
-    }
-    console.log(Guards);
-}
   
 function setMatrixUniform(){
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
@@ -408,36 +412,37 @@ function handleKeys() {
 }
 
 
-Guard.prototype.draw = function () {
+Guard.prototype.draw = function (i) {
     mvPushMatrix();
 
     //mat4.rotate(mvMatrix, degToRad(this.angle), [0.0, 1.0, 0.0]);
     glMatrix.mat4.translate(mvMatrix, mvMatrix, [this.locationx, this.locationy, 0.0]);
-
-    drawGuard()
+    
+    drawGuard(i)
   
     mvPopMatrix();
 };
 
 
-function drawGuard(){
+//draw guard with index i
+function drawGuard(i){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, guardTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
+    //console.log("Fucking draw already", i);
 
-    // Set the texture coordinates attribute for the vertices.
-    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
-    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, guardVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    // bind texCoord
+    gl.bindBuffer(gl.ARRAY_BUFFER, Guards[i].textureBufferGuard);
+    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, Guards[i].textureBufferGuard.itemSize, gl.FLOAT, false, 0, 0);
 
-    // Draw the world by binding the array buffer to the world's vertices
-    // array, setting attributes, and pushing it to GL.
-    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, guardVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    // bind vertexPos
+    gl.bindBuffer(gl.ARRAY_BUFFER, Guards[i].vertexBufferGuard);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, Guards[i].vertexBufferGuard.itemSize, gl.FLOAT, false, 0, 0);
 
-    
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
+    // bind indices
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Guards[i].indexBufferGuard);
     setMatrixUniforms();
-    gl.drawElements(gl.TRIANGLES, guardVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.TRIANGLES, Guards[i].indexBufferGuard.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
 function drawWorld(){
@@ -486,7 +491,7 @@ function drawScene() {
     
 
     for (var i in Guards) {
-        Guards[i].draw();
+        Guards[i].draw(i);
     }
 }
 
@@ -508,7 +513,7 @@ var start = function() {
         loadGuard();
 
 
-        initGuards();
+        //initGuards();
         
         
         loadWorld();
