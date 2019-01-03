@@ -32,6 +32,7 @@ var worldVertexTextureCoordBuffer;
 var worldVertexPositionBuffer;
 var worldVertexIndexBuffer;
 
+var guardRotate = 0;
 
 var Guards = [];
 
@@ -40,9 +41,9 @@ var currentlyPressedKeys = {};
 // Variables for storing current position and speed
 var pitch = 0;
 var pitchRate = 0;
-var yaw = 0;
+var yaw = -268;
 var yawRate = 0;
-var xPosition = 0;
+var xPosition = 10;
 var yPosition = 0.4;
 var zPosition = 0;
 var speed = 0;
@@ -255,37 +256,39 @@ function initTextureFramebuffer() {
 
 function handleLoadedGuard(guardData){
     
+    //dobis iz json fila posamezne atribute 
     var guardVertices = guardData.meshes[0].vertices;
     var guardIndices = [].concat.apply([], guardData.meshes[0].faces);
     var guardTexCoords = guardData.meshes[0].texturecoords[0];
     var guardNormals = guardData.meshes[0].normals;
     
+    // v buffer posles teksturne koordinate
     guardVertexTextureCoordBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(guardTexCoords), gl.STATIC_DRAW);
+    //pomozne spremenljivke za kasneje
     guardVertexTextureCoordBuffer.itemSize = 2;
     guardVertexTextureCoordBuffer.numItems = guardTexCoords.length / 2;
   
-    // Pass the vertex positions into WebGL
+    // v buffer posles vertexe
     guardVertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(guardVertices), gl.STATIC_DRAW);
+    //pomozne spremenljivke za kasneje
     guardVertexPositionBuffer.itemSize = 3;
     guardVertexPositionBuffer.numItems = guardVertices.length / 3;
   
-    // Pass the indices into WebGL
+    // v buffer posles indice
     guardVertexIndexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(guardIndices), gl.STATIC_DRAW);
+    //pomozne spremenljivke za kasneje
     guardVertexIndexBuffer.numItems = guardIndices.length;
 
-
-
-    var numGuards = 2;
+    var numGuards = 5;
     
     for (var i = 0; i < numGuards; i++) {
-      // Create new star and push it to the stars array
-      Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, i+2 , 1));
+      Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, i+2, 0));
     }
     console.log(Guards);
 }
@@ -317,6 +320,7 @@ function handleLoadedWorld(worldData){
     worldVertexIndexBuffer.numItems = worldIndices.length;
 }
 
+//nalozis model
 function loadGuard() {
     var request = new XMLHttpRequest();
     request.open("GET", "./assets/guard.json");
@@ -362,6 +366,7 @@ function animate() {
         yaw += yawRate * elapsed;
         pitch += pitchRate * elapsed;
   
+        guardRotate += 0.1;
     }
     lastTime = timeNow;
 }
@@ -392,8 +397,10 @@ function handleKeys() {
   
     if (currentlyPressedKeys[37] || currentlyPressedKeys[65]) {
       // Left cursor key or A
+
       yawRate = 0.1;
     } else if (currentlyPressedKeys[39] || currentlyPressedKeys[68]) {
+        //console.log(yaw);
       // Right cursor key or D
       yawRate = -0.1;
     } else {
@@ -416,33 +423,49 @@ Guard.prototype.draw = function (i) {
     mvPushMatrix();
 
     //mat4.rotate(mvMatrix, degToRad(this.angle), [0.0, 1.0, 0.0]);
-    glMatrix.mat4.translate(mvMatrix, mvMatrix, [this.locationx, this.locationy, 0.0]);
+    
     
     drawGuard(i)
   
-    mvPopMatrix();
+    
 };
 
 
 //draw guard with index i
 function drawGuard(i){
+    //mvPushMatrix();
+    //glMatrix.mat4.identity(mvMatrix);
+
+    //var xy = mvMatrix;
+    /*
+    xy[0].x = Guards[i].xlocation; // sets the upper left element to 1.0
+    xy[1].y = Guards[i].ylocation;*/
+
+    glMatrix.mat4.translate(mvMatrix, mvMatrix, [Guards[i].xlocation, 0.0, Guards[i].ylocation]);
+
+    //glMatrix.mat4.rotate(xy, xy, degToRad(guardRotate), [0, 1, 0]);
+
+
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, guardTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
-    //console.log("Fucking draw already", i);
 
-    // bind texCoord
-    gl.bindBuffer(gl.ARRAY_BUFFER, Guards[i].textureBufferGuard);
-    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, Guards[i].textureBufferGuard.itemSize, gl.FLOAT, false, 0, 0);
+    // Set the texture coordinates attribute for the vertices.
+    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
+    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, guardVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    // bind vertexPos
-    gl.bindBuffer(gl.ARRAY_BUFFER, Guards[i].vertexBufferGuard);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, Guards[i].vertexBufferGuard.itemSize, gl.FLOAT, false, 0, 0);
+    // Draw the guard by binding the array buffer to the guard's vertices
+    // array, setting attributes, and pushing it to GL.
+    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, guardVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    // bind indices
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Guards[i].indexBufferGuard);
+
+
+    
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
     setMatrixUniforms();
-    gl.drawElements(gl.TRIANGLES, Guards[i].indexBufferGuard.numItems, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.TRIANGLES, guardVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    //mvPopMatrix();
 }
 
 function drawWorld(){
@@ -481,18 +504,23 @@ function drawScene() {
 
     glMatrix.mat4.perspective(pMatrix, degToRad(45), gl.viewportWidth / gl.viewportHeight, 0.1, 1000.0);
     glMatrix.mat4.identity(mvMatrix);
-
+    //mvPushMatrix();
     //glMatrix.mat4.translate(mvMatrix, mvMatrix, [-1.0, -0.3, -13.0]);
     glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(-pitch), [1, 0, 0]);
     glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(-yaw), [0, 1, 0]);
     glMatrix.mat4.translate(mvMatrix, mvMatrix, [-xPosition, -yPosition, -zPosition]);
     
     drawWorld();
+
+    //
+    
+    for (var i in Guards){
+        //mvPushMatrix();
+        drawGuard(i);
+    }
     
 
-    for (var i in Guards) {
-        Guards[i].draw(i);
-    }
+    
 }
 
 var start = function() {
@@ -511,13 +539,9 @@ var start = function() {
         initShaders();
         initTextures();
         loadGuard();
-
-
-        //initGuards();
-        
         
         loadWorld();
-
+        
 
         document.onkeydown = handleKeyDown;
         document.onkeyup = handleKeyUp;
