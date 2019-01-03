@@ -78,13 +78,17 @@ function degToRad(degrees) {
 var lastTime = 0;
 var effectiveFPMS = 60 / 1000;
 
-function Guard(location){
+function Guard(x, y){
     //nvm to priredi po svoje ce je treba
     this.shot = false;
-    this.location = location;
+    this.xlocation = x;
+    this.ylocation = y;
     this.rotation = 0;
     //tu nardis funkcijo za padanje (neka rotacija al neki),...
 }
+
+
+
 
 
 function setMatrixUniforms() {
@@ -324,7 +328,13 @@ function loadWorld() {
 }
 
 function initGuards(){
-
+    var numGuards = 2;
+    
+    for (var i = 0; i < numGuards; i++) {
+      // Create new star and push it to the stars array
+      Guards.push(new Guard(i+2 , 1));
+    }
+    console.log(Guards);
 }
   
 function setMatrixUniform(){
@@ -398,39 +408,19 @@ function handleKeys() {
 }
 
 
-function drawScene() {
-    
+Guard.prototype.draw = function () {
+    mvPushMatrix();
 
-    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    //mat4.rotate(mvMatrix, degToRad(this.angle), [0.0, 1.0, 0.0]);
+    glMatrix.mat4.translate(mvMatrix, mvMatrix, [this.locationx, this.locationy, 0.0]);
 
-    //console.log(worldVertexPositionBuffer);
-
-
-    if (guardVertexPositionBuffer == null || guardVertexTextureCoordBuffer == null || guardVertexIndexBuffer == null) {
-        console.log("guard not loaded");
-        return;
-    }
-    if (worldVertexPositionBuffer == null || worldVertexTextureCoordBuffer == null || worldVertexIndexBuffer == null) {
-        console.log("world not loaded");
-        return;
-    }
-    
-    
-
-    glMatrix.mat4.perspective(pMatrix, degToRad(45), gl.viewportWidth / gl.viewportHeight, 0.1, 1000.0);
-    glMatrix.mat4.identity(mvMatrix);
-
-    //glMatrix.mat4.translate(mvMatrix, mvMatrix, [-1.0, -0.3, -13.0]);
-    glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(-pitch), [1, 0, 0]);
-    glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(-yaw), [0, 1, 0]);
-    glMatrix.mat4.translate(mvMatrix, mvMatrix, [-xPosition, -yPosition, -zPosition]);
-    
+    drawGuard()
+  
+    mvPopMatrix();
+};
 
 
-    //store current location
-    
-
+function drawGuard(){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, guardTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
@@ -444,14 +434,13 @@ function drawScene() {
     gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, guardVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-
     
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
     setMatrixUniforms();
     gl.drawElements(gl.TRIANGLES, guardVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-    
+}
 
-    
+function drawWorld(){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, worldTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
@@ -469,9 +458,36 @@ function drawScene() {
     
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, worldVertexIndexBuffer);
     setMatrixUniforms();
-
     gl.drawElements(gl.TRIANGLES, worldVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-   
+}
+
+function drawScene() {
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    if (guardVertexPositionBuffer == null || guardVertexTextureCoordBuffer == null || guardVertexIndexBuffer == null) {
+        console.log("guard not loaded");
+        return;
+    }
+    if (worldVertexPositionBuffer == null || worldVertexTextureCoordBuffer == null || worldVertexIndexBuffer == null) {
+        console.log("world not loaded");
+        return;
+    }
+
+    glMatrix.mat4.perspective(pMatrix, degToRad(45), gl.viewportWidth / gl.viewportHeight, 0.1, 1000.0);
+    glMatrix.mat4.identity(mvMatrix);
+
+    //glMatrix.mat4.translate(mvMatrix, mvMatrix, [-1.0, -0.3, -13.0]);
+    glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(-pitch), [1, 0, 0]);
+    glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(-yaw), [0, 1, 0]);
+    glMatrix.mat4.translate(mvMatrix, mvMatrix, [-xPosition, -yPosition, -zPosition]);
+    
+    drawWorld();
+    
+
+    for (var i in Guards) {
+        Guards[i].draw();
+    }
 }
 
 var start = function() {
@@ -490,13 +506,18 @@ var start = function() {
         initShaders();
         initTextures();
         loadGuard();
+
+
+        initGuards();
+        
+        
         loadWorld();
 
 
         document.onkeydown = handleKeyDown;
         document.onkeyup = handleKeyUp;
         
-        //drawScene();us
+       
         setInterval(function() {
             if (texturesLoaded == numberOfTextures) { // only draw scene and animate when textures are loaded.
                 requestAnimationFrame(animate);
