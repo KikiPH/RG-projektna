@@ -15,7 +15,7 @@ var mvMatrix = glMatrix.mat4.create();
 var pMatrix = glMatrix.mat4.create();
 
 var texturesLoaded = 0;
-var numberOfTextures = 1;
+var numberOfTextures = 2;
 
 var currentlyPressedKeys = {};
 
@@ -199,6 +199,13 @@ function initTextures() {
         handleTextureLoaded(guardTexture);
     }
     guardTexture.image.src = "./assets/guard.png";
+
+    worldTexture = gl.createTexture();
+    worldTexture.image = new Image();
+    worldTexture.image.onload = function() {
+        handleTextureLoaded(worldTexture);
+    }
+    worldTexture.image.src = "./assets/world.png";
 }
 
 function handleTextureLoaded(texture){
@@ -444,7 +451,7 @@ function drawScene() {
     gl.drawElements(gl.TRIANGLES, guardVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
     
 
-
+    
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, worldTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
@@ -478,7 +485,7 @@ var start = function() {
         gl.clearDepth(1.0);                                     // Clear everything
         gl.enable(gl.DEPTH_TEST);                               // Enable depth testing
         gl.depthFunc(gl.LEQUAL);  
-
+        initTextureFramebuffer();
 
         initShaders();
         initTextures();
@@ -489,7 +496,7 @@ var start = function() {
         document.onkeydown = handleKeyDown;
         document.onkeyup = handleKeyUp;
         
-        //drawScene();
+        //drawScene();us
         setInterval(function() {
             if (texturesLoaded == numberOfTextures) { // only draw scene and animate when textures are loaded.
                 requestAnimationFrame(animate);

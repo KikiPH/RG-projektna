@@ -4,11 +4,12 @@
         <title>Game</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<script type="x-shader/x-fragment" id="shader-fs">
+			precision mediump float;
 			varying highp vec2 vTextureCoord;
 
 			// uniform attribute for setting 2D sampler
 			uniform sampler2D uSampler;
-
+			uniform bool uUseTextures;
 			void main(void) {
 				// set color of fragment accordingly to the color in texture
 				gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
