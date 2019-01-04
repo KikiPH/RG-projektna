@@ -1,11 +1,11 @@
 var shaderProgram;
 var canvas;
 var gl;
-var glMatrix;
 
 // Texture and framebuffer
 var rttFramebuffer;
 var rttTexture;
+
 
 var modelVertexPositionBuffer;
 var modelVertexTextureCoordBuffer;
@@ -34,26 +34,14 @@ var worldVertexIndexBuffer;
 
 var guardRotate = 0;
 
-var numGuards = 5;
 var Guards = [];
-
-var gameOver = false;
-var startTime;
-var endTime;
-
-var bulletPositionBuffer;
-var drawBullet = false;
-var bulletX;
-var bulletY;
-var bulletZ;
-var bulletAngle;
 
 var currentlyPressedKeys = {};
 
 // Variables for storing current position and speed
 var pitch = 0;
 var pitchRate = 0;
-var yaw = 90;
+var yaw = -268;
 var yawRate = 0;
 var xPosition = 10;
 var yPosition = 0.4;
@@ -83,10 +71,13 @@ function degToRad(degrees) {
     return degrees * Math.PI / 180;
 }
 
+
+
+
+
 //animation helper variables
 var lastTime = 0;
 var effectiveFPMS = 60 / 1000;
-
 
 class Guard {
     constructor(vertexBufferGuard, textureBufferGuard, indexBufferGuard, x, y){
@@ -101,11 +92,13 @@ class Guard {
 }
 
 
+
+
+
 function setMatrixUniforms() {
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 }
-
 
 function initGL (canvas){
     var gl = null;
@@ -118,6 +111,7 @@ function initGL (canvas){
         }
         gl.viewportWidth = canvas.width;
         gl.viewportHeight = canvas.height;
+
         
     } catch(e) {}
 
@@ -126,7 +120,6 @@ function initGL (canvas){
     }
 	return gl;
 } 
-
 
 function getShader(gl, id) {
     var shaderScript = document.getElementById(id);
@@ -164,8 +157,9 @@ function getShader(gl, id) {
     
     return shader;
 
-}
 
+
+}
 
 function initShaders() {
     var fragmentShader = getShader(gl, "shader-fs");
@@ -206,25 +200,23 @@ function initShaders() {
     shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
 }
 
-
 function initTextures() {
     guardTexture = gl.createTexture();
     guardTexture.image = new Image();
     guardTexture.image.onload = function() {
         handleTextureLoaded(guardTexture);
-    };
+    }
     guardTexture.image.src = "./assets/guard.png";
 
     worldTexture = gl.createTexture();
     worldTexture.image = new Image();
     worldTexture.image.onload = function() {
         handleTextureLoaded(worldTexture);
-    };
+    }
     worldTexture.image.src = "./assets/world.png";
 }
 
-
-function handleTextureLoaded(texture) {
+function handleTextureLoaded(texture){
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
@@ -235,7 +227,6 @@ function handleTextureLoaded(texture) {
     
     texturesLoaded += 1;
 }
-
 
 function initTextureFramebuffer() {
     rttFramebuffer = gl.createFramebuffer();
@@ -263,7 +254,8 @@ function initTextureFramebuffer() {
   }
 
 
-function handleLoadedGuard(guardData) {
+function handleLoadedGuard(guardData){
+    
     //dobis iz json fila posamezne atribute 
     var guardVertices = guardData.meshes[0].vertices;
     var guardIndices = [].concat.apply([], guardData.meshes[0].faces);
@@ -274,7 +266,7 @@ function handleLoadedGuard(guardData) {
     guardVertexTextureCoordBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(guardTexCoords), gl.STATIC_DRAW);
-    // pomozne spremenljivke za kasneje
+    //pomozne spremenljivke za kasneje
     guardVertexTextureCoordBuffer.itemSize = 2;
     guardVertexTextureCoordBuffer.numItems = guardTexCoords.length / 2;
   
@@ -282,7 +274,7 @@ function handleLoadedGuard(guardData) {
     guardVertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(guardVertices), gl.STATIC_DRAW);
-    // pomozne spremenljivke za kasneje
+    //pomozne spremenljivke za kasneje
     guardVertexPositionBuffer.itemSize = 3;
     guardVertexPositionBuffer.numItems = guardVertices.length / 3;
   
@@ -290,23 +282,19 @@ function handleLoadedGuard(guardData) {
     guardVertexIndexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(guardIndices), gl.STATIC_DRAW);
-    // pomozne spremenljivke za kasneje
+    //pomozne spremenljivke za kasneje
     guardVertexIndexBuffer.numItems = guardIndices.length;
+
+    var numGuards = 5;
     
-    Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, 0, -7));
-    Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, -6, 3.5));
-    Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, 0, 9));
-    Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, 6, 0));
-    Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, 3.5, -13));
-    
-    /*for (var i = 0; i < numGuards; i++) {
+    for (var i = 0; i < numGuards; i++) {
       Guards.push(new Guard(guardVertexPositionBuffer, guardVertexTextureCoordBuffer, guardVertexIndexBuffer, i+2, 0));
-    }*/
+    }
     console.log(Guards);
 }
 
-
-function handleLoadedWorld(worldData) {
+function handleLoadedWorld(worldData){
+    
     var worldVertices = worldData.meshes[0].vertices;
     var worldIndices = [].concat.apply([], worldData.meshes[0].faces);
     var worldTexCoords = worldData.meshes[0].texturecoords[0];
@@ -332,7 +320,6 @@ function handleLoadedWorld(worldData) {
     worldVertexIndexBuffer.numItems = worldIndices.length;
 }
 
-
 //nalozis model
 function loadGuard() {
     var request = new XMLHttpRequest();
@@ -357,12 +344,11 @@ function loadWorld() {
     request.send();
 }
 
-
+  
 function setMatrixUniform(){
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 }
-
 
 function animate() {
     var timeNow = new Date().getTime();
@@ -377,7 +363,7 @@ function animate() {
             yPosition = Math.sin(degToRad(joggingAngle)) / 20 + 0.4;
         }
 
-        yaw = (yaw + yawRate * elapsed + 360) % 360;
+        yaw += yawRate * elapsed;
         pitch += pitchRate * elapsed;
   
         guardRotate += 0.1;
@@ -388,17 +374,15 @@ function animate() {
 
 function handleKeyDown(event) {
     // storing the pressed state for individual key
-    //console.log("pressing");
+    console.log("pressing");
     currentlyPressedKeys[event.keyCode] = true;
     
 }
-
-
+  
 function handleKeyUp(event) {
     // reseting the pressed state for individual key
     currentlyPressedKeys[event.keyCode] = false;
 }
-
 
 function handleKeys() {
     if (currentlyPressedKeys[33]) {
@@ -416,6 +400,7 @@ function handleKeys() {
 
       yawRate = 0.1;
     } else if (currentlyPressedKeys[39] || currentlyPressedKeys[68]) {
+        //console.log(yaw);
       // Right cursor key or D
       yawRate = -0.1;
     } else {
@@ -431,77 +416,59 @@ function handleKeys() {
     } else {
       speed = 0;
     }
-    
-    if (currentlyPressedKeys[32]) {
-      // Space
-      drawBullet = true;
-      bulletX = xPosition;
-      bulletY = yPosition;
-      bulletZ = zPosition;
-      bulletAngle = yaw;
-      console.log("bullet", bulletX, bulletY, bulletZ, bulletAngle);
-    }
-}
-
-
-function bulletBuffer() {
-  bulletPositionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, bulletPositionBuffer);
-  var vertices = [
-     0.0,  1.0,  0.0,
-    -1.0, -1.0,  0.0,
-     1.0, -1.0,  0.0
-  ];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-  bulletPositionBuffer.itemSize = 3;
-  bulletPositionBuffer.numItems = 3;
-}
-
-
-function displayBullet() {
-    glMatrix.mat4.translate(mvMatrix, mvMatrix, [bulletX-4, bulletY-0.2, bulletZ+7.2]);
-    glMatrix.mat4.scale(mvMatrix, mvMatrix, [0.1, 0.1, 0.1]);
-    glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(bulletAngle), [0.0, 1.0, 0.0]);
-    gl.bindBuffer(gl.ARRAY_BUFFER, bulletPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, bulletPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    setMatrixUniforms();
-    gl.drawArrays(gl.TRIANGLES, 0, bulletPositionBuffer.numItems);
 }
 
 
 Guard.prototype.draw = function (i) {
     mvPushMatrix();
-    drawGuard(i);
+
+    //mat4.rotate(mvMatrix, degToRad(this.angle), [0.0, 1.0, 0.0]);
+    
+    
+    drawGuard(i)
+  
+    
 };
 
 
 //draw guard with index i
-function drawGuard(i) {
-    if (!i.shot) {
+function drawGuard(i){
+    //mvPushMatrix();
+    //glMatrix.mat4.identity(mvMatrix);
 
-        glMatrix.mat4.translate(mvMatrix, mvMatrix, [Guards[i].xlocation, 0.0, Guards[i].ylocation]);
+    //var xy = mvMatrix;
+    /*
+    xy[0].x = Guards[i].xlocation; // sets the upper left element to 1.0
+    xy[1].y = Guards[i].ylocation;*/
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, guardTexture);
-        gl.uniform1i(shaderProgram.samplerUniform, 0);
+    glMatrix.mat4.translate(mvMatrix, mvMatrix, [Guards[i].xlocation, 0.0, Guards[i].ylocation]);
 
-        // Set the texture coordinates attribute for the vertices.
-        gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
-        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, guardVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    //glMatrix.mat4.rotate(xy, xy, degToRad(guardRotate), [0, 1, 0]);
 
-        // Draw the guard by binding the array buffer to the guard's vertices
-        // array, setting attributes, and pushing it to GL.
-        gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, guardVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
-        setMatrixUniforms();
-        gl.drawElements(gl.TRIANGLES, guardVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-    }
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, guardTexture);
+    gl.uniform1i(shaderProgram.samplerUniform, 0);
+
+    // Set the texture coordinates attribute for the vertices.
+    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexTextureCoordBuffer);
+    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, guardVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+    // Draw the guard by binding the array buffer to the guard's vertices
+    // array, setting attributes, and pushing it to GL.
+    gl.bindBuffer(gl.ARRAY_BUFFER, guardVertexPositionBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, guardVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+
+    
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, guardVertexIndexBuffer);
+    setMatrixUniforms();
+    gl.drawElements(gl.TRIANGLES, guardVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    //mvPopMatrix();
 }
 
-
-function drawWorld() {
+function drawWorld(){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, worldTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
@@ -515,11 +482,12 @@ function drawWorld() {
     gl.bindBuffer(gl.ARRAY_BUFFER, worldVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, worldVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
+
+    
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, worldVertexIndexBuffer);
     setMatrixUniforms();
     gl.drawElements(gl.TRIANGLES, worldVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
-
 
 function drawScene() {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -536,56 +504,24 @@ function drawScene() {
 
     glMatrix.mat4.perspective(pMatrix, degToRad(45), gl.viewportWidth / gl.viewportHeight, 0.1, 1000.0);
     glMatrix.mat4.identity(mvMatrix);
+    //mvPushMatrix();
+    //glMatrix.mat4.translate(mvMatrix, mvMatrix, [-1.0, -0.3, -13.0]);
     glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(-pitch), [1, 0, 0]);
     glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(-yaw), [0, 1, 0]);
     glMatrix.mat4.translate(mvMatrix, mvMatrix, [-xPosition, -yPosition, -zPosition]);
     
     drawWorld();
+
+    //
     
-    var dead = 0;
-    for (var i in Guards){ // (var i = 0; i < numGuards; i++)
-        
-        if (i.shot) {
-            dead++;
-        }
-        if (dead == numGuards) {
-            endTime = new Date();
-            var timeDiff = Math.round((endTime - startTime) / 1000);
-            alert("CONGRATULATIONS! \nYou won in " + timeDiff + " seconds.");
-            console.log("YOU WIN!");
-            //gameOver = true;
-        }
-        
-        if (!i.shot) { // (!Guards[i].shot)
-            drawGuard(i);
-            var bulletDistance = Math.hypot(bulletX-Guards[i].xlocation, bulletZ-Guards[i].ylocation);
-            if (bulletDistance < 1) {
-                i.shot = true;
-                //delete guard texture, remove guard from table
-                console.log("guard killed", Guards.length - dead, "left");
-            }
-            if (!gameOver) {
-                var distance = Math.hypot(xPosition-Guards[i].xlocation, zPosition-Guards[i].ylocation);
-                if (distance < 3) {
-                    endTime = new Date();
-                    var timeDiff = Math.round((endTime - startTime) / 1000);
-                    //alert("GAME OVER! \nYou lasted " + timeDiff + " seconds.");
-                    //console.log("GAME OVER");
-                    //gameOver = true;
-                }
-            }
-        }
+    for (var i in Guards){
+        //mvPushMatrix();
+        drawGuard(i);
     }
     
-    if (drawBullet){
-        displayBullet();
-        bulletX -= Math.sin(degToRad(bulletAngle)) * 0.2;
-        bulletZ -= Math.cos(degToRad(bulletAngle)) * 0.2;
-        //console.log("bullet", bulletX, bulletZ, bulletAngle);
-    }
+
     
 }
-
 
 var start = function() {
     console.log("started");
@@ -603,22 +539,23 @@ var start = function() {
         initShaders();
         initTextures();
         loadGuard();
-        bulletBuffer();
         
         loadWorld();
         
-        startTime = new Date();
 
         document.onkeydown = handleKeyDown;
         document.onkeyup = handleKeyUp;
-
+        
+       
         setInterval(function() {
-            if (texturesLoaded == numberOfTextures && !gameOver) { // only draw scene and animate when textures are loaded.
+            if (texturesLoaded == numberOfTextures) { // only draw scene and animate when textures are loaded.
                 requestAnimationFrame(animate);
                 handleKeys();
                 drawScene();
-                console.log(xPosition, yPosition, zPosition, yaw);
             }
         }, 15);
     }
-};
+    
+
+    
+}
