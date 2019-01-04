@@ -41,7 +41,6 @@ var startTime;
 var endTime;
 
 var bulletPositionBuffer;
-var bulletColorBuffer;
 var drawBullet = false;
 var bulletX;
 var bulletY;
@@ -456,26 +455,15 @@ function bulletBuffer() {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
   bulletPositionBuffer.itemSize = 3;
   bulletPositionBuffer.numItems = 3;
-  bulletColorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, bulletColorBuffer);
-  var colors = [
-      1.0, 0.0, 0.0, 1.0,   // red
-      0.0, 1.0, 0.0, 1.0,   // green
-      0.0, 0.0, 1.0, 1.0    // blue
-  ];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-  bulletColorBuffer.itemSize = 4;
-  bulletColorBuffer.numItems = 3;
 }
 
 
 function displayBullet() {
     glMatrix.mat4.translate(mvMatrix, mvMatrix, [bulletX-4, bulletY-0.2, bulletZ+7.2]);
     glMatrix.mat4.scale(mvMatrix, mvMatrix, [0.1, 0.1, 0.1]);
+    glMatrix.mat4.rotate(mvMatrix, mvMatrix, degToRad(yaw), [0.0, 1.0, 0.0]);
     gl.bindBuffer(gl.ARRAY_BUFFER, bulletPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, bulletPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, bulletColorBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, bulletColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
     setMatrixUniforms();
     gl.drawArrays(gl.TRIANGLES, 0, bulletPositionBuffer.numItems);
 }
@@ -583,7 +571,7 @@ function drawScene() {
                 if (distance < 3) {
                     endTime = new Date();
                     var timeDiff = Math.round((endTime - startTime) / 1000);
-                    alert("GAME OVER! \nYou lasted " + timeDiff + " seconds.");
+                    //alert("GAME OVER! \nYou lasted " + timeDiff + " seconds.");
                     console.log("GAME OVER");
                     //gameOver = true;
                 }
@@ -603,8 +591,12 @@ function drawScene() {
     
     if (drawBullet){
         displayBullet();
-        bulletX += Math.sin((bulletAngle+360)%360) * 0.01;
-        bulletZ -= Math.cos((bulletAngle+360)%360) * 0.01;
+        var prevX = bulletX;
+        var prevZ = bulletZ;
+        bulletX += Math.sin((bulletAngle)) * 0.01;
+        bulletZ += Math.cos((bulletAngle)) * 0.01;
+        console.log("bullet", bulletX, bulletZ, bulletAngle);
+        console.log(bulletX-prevX, bulletZ-prevZ);
     }
     
 }
