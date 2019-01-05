@@ -478,7 +478,7 @@ Guard.prototype.draw = function (i) {
 
 //draw guard with index i
 function drawGuard(i) {
-    if (!i.shot) {
+    if (!Guards[i].shot) {
 
         glMatrix.mat4.translate(mvMatrix, mvMatrix, [Guards[i].xlocation, 0.0, Guards[i].ylocation]);
 
@@ -544,9 +544,9 @@ function drawScene() {
     drawWorld();
     
     var dead = 0;
-    for (var i in Guards){ // (var i = 0; i < numGuards; i++)
+    for (var i = 0; i < numGuards; i++){ // (var i = 0; i < numGuards; i++)
         
-        if (i.shot) {
+        if (Guards[i].shot) {
             dead++;
         }
         if (dead == numGuards) {
@@ -557,22 +557,22 @@ function drawScene() {
             //gameOver = true;
         }
         
-        if (!i.shot) { // (!Guards[i].shot)
+        if (!Guards[i].shot) { // (!Guards[i].shot)
             drawGuard(i);
-            var bulletDistance = Math.hypot(bulletX-Guards[i].xlocation, bulletZ-Guards[i].ylocation);
-            if (bulletDistance < 1) {
-                i.shot = true;
+            //var bulletDistance = Math.hypot(bulletX-Guards[i].xlocation, bulletZ-Guards[i].ylocation);
+            if (Math.abs(bulletX-Guards[i].xlocation) < 2 && Math.abs(bulletZ-Guards[i].ylocation) < 2) {
+                Guards[i].shot = true;
                 //i.isShot();
                 //delete guard texture, remove guard from table
                 console.log("guard killed", Guards.length - dead, "left");
                 console.log(Guards);
             }
             if (!gameOver) {
-                var distance = Math.hypot(xPosition-Guards[i].xlocation, zPosition-Guards[i].ylocation);
-                if (distance < 3) {
+                var distance = Math.hypot(xPosition-Guards[i].xlocation, yPosition-Guards[i].ylocation);
+                if (Math.abs(xPosition-Guards[i].xlocation) < 1 && Math.abs( yPosition-Guards[i].ylocation) < 1) {
                     endTime = new Date();
                     var timeDiff = Math.round((endTime - startTime) / 1000);
-                    //alert("GAME OVER! \nYou lasted " + timeDiff + " seconds.");
+                    alert("GAME OVER! \nYou lasted " + timeDiff + " seconds.");
                     //console.log("GAME OVER");
                     //gameOver = true;
                 }
