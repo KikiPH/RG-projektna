@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
-        <title>Game</title>
+        <title>Mainframe Attack</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<script type="x-shader/x-fragment" id="shader-fs">
 			precision mediump float;
@@ -35,18 +35,26 @@
 		</script>
 
 		<script src="./scripts/gl-matrix.js"></script>
-		<script src="app.js"></script>		
+		<script src="app.js"></script>
+		<style>
+			body{
+				font-family: "Courier New", monospace;
+				background-color: #1b1b1b;
+				color: lightgreen;
+			}
+		
+		</style>		
 	</head>
 	<body onload="start();">
-
+		<h1>Mainframe Attack</h1>
 		<canvas id="game-surface" width="800" height="600">
 			Your browser does not support HTML5
 		</canvas>
 		<br />
                 <p>Use WASD to move and turn. Press space to shoot.</p>
                 <p>Kill all of the guards without getting too close.</p>
-                <p>Guards left:</p>
-                <p id="guardCounter"></p>
+                <p style="color:firebrick; font-weight: bold;">Guards left:</p>
+                <p style="color:firebrick; font-weight: bold;" id="guardCounter"></p>
         
 	</body>
 </html>
